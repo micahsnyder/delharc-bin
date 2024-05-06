@@ -18,25 +18,6 @@ fn main() {
         // Get the file header.
         let header = decoder.header();
 
-        // Verify the CRC check. This is important because LHA/LZH does not have particularly identifiable magic bytes.
-        match decoder.crc_check() {
-            Ok(crc) => {
-                // CRC is valid.  Very likely it is indeed an LHA/LZH archive.
-                println!(
-                    "CRC check passed.  Very likely this is an LHA or LZH archive.  CRC: {crc}"
-                );
-            }
-            Err(err) => {
-                // Error checking CRC.
-                // Use println-level because may not actually be an LHA/LZH archive.
-                // LHA/LZH does not have particularly identifiable magic bytes.
-                println!(
-                    "An error occurred when checking the CRC of this LHA or LZH archive: {err}"
-                );
-                // break;
-            }
-        }
-
         let filepath = header.parse_pathname();
         let filename = filepath.to_string_lossy();
 
@@ -56,6 +37,23 @@ fn main() {
                     Ok(bytes_read) => {
                         if bytes_read > 0 {
                             println!("Read {bytes_read} bytes from file {filename}");
+
+                            // Verify the CRC check *after* reading the file.
+                            match decoder.crc_check() {
+                                Ok(crc) => {
+                                    // CRC is valid.  Very likely it is indeed an LHA/LZH archive.
+                                    println!("CRC check passed: CRC: {crc}");
+                                }
+                                Err(err) => {
+                                    // Error checking CRC.
+                                    println!(
+                                        "An error occurred when checking the CRC of this LHA or LZH archive: {err}"
+                                    );
+
+                                    // Allow the scan to continue even with a CRC error, for now.
+                                    // break;
+                                }
+                            }
                         } else {
                             println!("Read zero-byte file.");
                         }
